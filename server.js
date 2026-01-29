@@ -276,6 +276,7 @@ const hostHTML = `<!DOCTYPE html>
     <div class="join-info">
       <p>Players join at:</p>
       <p class="join-url" id="joinUrl"></p>
+      <canvas id="qrcode" style="margin-top:15px;"></canvas>
     </div>
     
     <div class="main-display" id="mainDisplay">
@@ -299,12 +300,15 @@ const hostHTML = `<!DOCTYPE html>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
   <script>
     const socket = io();
     let currentPhase = 'lobby';
-    
-    // Show join URL
+
+    // Show join URL and QR code
+    const joinUrl = window.location.origin;
     document.getElementById('joinUrl').textContent = window.location.host;
+    QRCode.toCanvas(document.getElementById('qrcode'), joinUrl, { width: 200, margin: 1, color: { dark: '#bc002d', light: '#ffffff' } });
     
     // Update player list
     socket.on('playerList', (players) => {
