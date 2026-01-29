@@ -358,9 +358,9 @@ const hostHTML = `<!DOCTYPE html>
     .final-results h2 { font-size: 2.5rem; margin-bottom: 30px; }
     .winner { font-size: 4rem; margin: 20px 0; }
     .winner-name { color: gold; font-size: 3rem; }
-    .timer { font-size: 3rem; font-weight: bold; color: #bc002d; margin-bottom: 10px; }
-    .timer.urgent { color: #ff0000; animation: pulse 0.5s infinite alternate; }
-    @keyframes pulse { from { opacity: 1; } to { opacity: 0.5; } }
+    .timer { font-size: 4rem; font-weight: bold; color: #fff; background: #bc002d; width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; box-shadow: 0 4px 15px rgba(188,0,45,0.4); transition: background 0.3s, transform 0.3s; }
+    .timer.urgent { background: #ff0000; animation: pulse-scale 0.5s infinite alternate; box-shadow: 0 4px 20px rgba(255,0,0,0.6); }
+    @keyframes pulse-scale { from { opacity: 1; transform: scale(1); } to { opacity: 0.7; transform: scale(1.1); } }
     .paused-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #bc002d; font-weight: bold; border-radius: 20px; }
   </style>
 </head>
@@ -425,6 +425,8 @@ const hostHTML = `<!DOCTYPE html>
       },
       playerJoin() { this.init(); this._tone(500, 0.1, 'sine', 0.15); },
       question() { this.init(); this._tone(880, 0.15, 'sine', 0.2); },
+      tick() { this.init(); this._tone(800, 0.03, 'sine', 0.1); },
+      tickUrgent() { this.init(); this._tone(1000, 0.06, 'square', 0.15); },
       gameOver() {
         this.init();
         [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this._tone(f, 0.3, 'sine', 0.25), i * 150));
@@ -444,6 +446,7 @@ const hostHTML = `<!DOCTYPE html>
     function startCountdown(timeLimit) {
       stopCountdown();
       const startTime = Date.now();
+      let lastSec = -1;
       countdownInterval = setInterval(() => {
         if (isPaused) return;
         const el = document.getElementById('hostTimer');
@@ -452,6 +455,10 @@ const hostHTML = `<!DOCTYPE html>
         const remaining = Math.max(0, Math.ceil((timeLimit - elapsed) / 1000));
         el.textContent = remaining;
         el.className = remaining <= 3 ? 'timer urgent' : 'timer';
+        if (remaining !== lastSec && remaining > 0) {
+          lastSec = remaining;
+          remaining <= 3 ? SoundFX.tickUrgent() : SoundFX.tick();
+        }
         if (remaining <= 0) stopCountdown();
       }, 100);
     }
@@ -606,8 +613,10 @@ const playerHTML = `<!DOCTYPE html>
     .game-view { flex: 1; display: flex; flex-direction: column; }
     .status { text-align: center; padding: 15px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; }
     .score { font-size: 1.5rem; font-weight: bold; color: #bc002d; }
-    .player-timer { font-size: 1.5rem; font-weight: bold; color: #bc002d; }
-    .player-timer.urgent { color: #ff0000; }
+    .player-timer { font-size: 1.8rem; font-weight: bold; color: #fff; background: #bc002d; width: 50px; height: 50px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(188,0,45,0.3); transition: background 0.3s, transform 0.3s; }
+    .player-timer:empty { display: none; }
+    .player-timer.urgent { background: #ff0000; animation: player-pulse 0.5s infinite alternate; box-shadow: 0 2px 12px rgba(255,0,0,0.5); }
+    @keyframes player-pulse { from { transform: scale(1); } to { transform: scale(1.15); } }
     .prompt { text-align: center; font-size: 5rem; margin: 20px 0; }
     .options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; flex: 1; }
     .option { display: flex; align-items: center; justify-content: center; font-size: 3rem; background: #fff; border: 2px solid #e0d6cc; border-radius: 15px; color: #2c2c2c; cursor: pointer; transition: background 0.2s, transform 0.1s; min-height: 100px; }
@@ -694,6 +703,8 @@ const playerHTML = `<!DOCTYPE html>
       },
       wrong() { this.init(); this._tone(200, 0.3, 'square', 0.15); },
       question() { this.init(); this._tone(880, 0.15, 'sine', 0.2); },
+      tick() { this.init(); this._tone(800, 0.03, 'sine', 0.1); },
+      tickUrgent() { this.init(); this._tone(1000, 0.06, 'square', 0.15); },
       gameOver() {
         this.init();
         [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this._tone(f, 0.3, 'sine', 0.25), i * 150));
@@ -711,6 +722,7 @@ const playerHTML = `<!DOCTYPE html>
       stopCountdown();
       const startTime = Date.now();
       const el = document.getElementById('playerTimer');
+      let lastSec = -1;
       countdownInterval = setInterval(() => {
         if (isPaused) return;
         if (!el) { stopCountdown(); return; }
@@ -718,6 +730,10 @@ const playerHTML = `<!DOCTYPE html>
         const remaining = Math.max(0, Math.ceil((timeLimit - elapsed) / 1000));
         el.textContent = remaining;
         el.className = remaining <= 3 ? 'player-timer urgent' : 'player-timer';
+        if (remaining !== lastSec && remaining > 0) {
+          lastSec = remaining;
+          remaining <= 3 ? SoundFX.tickUrgent() : SoundFX.tick();
+        }
         if (remaining <= 0) { clearInterval(countdownInterval); countdownInterval = null; }
       }, 100);
     }
