@@ -102,9 +102,13 @@ function calculateScore(timeMs) {
 }
 
 function getLeaderboard() {
-  return Object.values(gameState.players)
-    .sort((a, b) => b.score - a.score)
-    .map((p, i) => ({ rank: i + 1, name: p.name, score: p.score }));
+  const entries = Object.entries(gameState.players)
+    .sort((a, b) => b[1].score - a[1].score);
+  let currentRank = 1;
+  return entries.map(([id, p], i) => {
+    if (i > 0 && p.score < entries[i - 1][1].score) currentRank = i + 1;
+    return { rank: currentRank, name: p.name, score: p.score, id };
+  });
 }
 
 function resetPlayerAnswers() {
@@ -535,11 +539,19 @@ const hostHTML = `<!DOCTYPE html>
       stopCountdown();
       currentPhase = 'results';
       const winner = lb[0];
-      document.getElementById('mainDisplay').innerHTML =
-        '<div class="final-results"><h2>Game Over</h2>' +
+      let html = '<div class="final-results"><h2>Game Over</h2>' +
         '<div class="winner">&#x7D42;</div>' +
         '<div class="winner-name">' + (winner ? winner.name : 'No players') + '</div>' +
-        '<p style="font-size:1.5rem;color:#6b6b6b;margin-top:10px;">' + (winner ? winner.score + ' points' : '') + '</p></div>';
+        '<p style="font-size:1.5rem;color:#6b6b6b;margin-top:10px;">' + (winner ? winner.score + ' points' : '') + '</p>';
+      if (lb.length > 1) {
+        html += '<div style="margin-top:30px;max-width:400px;margin-left:auto;margin-right:auto;">';
+        lb.forEach(function(p) {
+          html += '<div class="leaderboard-item"><span>#' + p.rank + ' ' + p.name + '</span><span>' + p.score + '</span></div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+      document.getElementById('mainDisplay').innerHTML = html;
       updateControls();
     });
 
@@ -822,11 +834,12 @@ const playerHTML = `<!DOCTYPE html>
       document.getElementById('resultArea').classList.add('hidden');
       document.getElementById('waitingArea').classList.remove('hidden');
 
-      const myRank = lb.findIndex(p => p.score === myScore) + 1;
+      const me = lb.find(p => p.id === socket.id);
+      const myRank = me ? me.rank : '-';
       document.getElementById('waitingArea').innerHTML =
         '<p class="waiting">Game Over — 終</p>' +
         '<p class="waiting">Your score: ' + myScore + '</p>' +
-        '<p class="waiting">Rank: #' + myRank + '</p>';
+        '<p class="waiting">Rank: #' + myRank + ' of ' + lb.length + '</p>';
     });
 
     // Pause / Resume
