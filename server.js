@@ -107,7 +107,7 @@ function getLeaderboard() {
   let currentRank = 1;
   return entries.map(([id, p], i) => {
     if (i > 0 && p.score < entries[i - 1][1].score) currentRank = i + 1;
-    return { rank: currentRank, name: p.name, score: p.score, id };
+    return { rank: currentRank, name: p.name, score: p.score, id, answered: p.answered };
   });
 }
 
@@ -158,6 +158,7 @@ function runNextStep() {
     });
   }
 
+  io.emit('leaderboard', getLeaderboard());
   gameState.timerHandle = setTimeout(onTimerExpired, TIME_LIMIT);
 }
 
@@ -362,7 +363,10 @@ const hostHTML = `<!DOCTYPE html>
     .panel h3 { margin-bottom: 15px; color: #c03030; }
     .player-list { list-style: none; }
     .player-list li { padding: 8px 0; border-bottom: 1px solid #c4b8a8; }
-    .leaderboard-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #c4b8a8; }
+    .leaderboard-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #c4b8a8; }
+    .lb-name { flex: 1; }
+    .lb-score { font-weight: 700; min-width: 40px; text-align: right; }
+    .lb-check { width: 20px; text-align: center; margin-left: 8px; font-size: 0.9rem; }
     .rank-1 { color: gold; font-weight: bold; }
     .rank-2 { color: silver; }
     .rank-3 { color: #cd7f32; }
@@ -528,7 +532,9 @@ const hostHTML = `<!DOCTYPE html>
     socket.on('leaderboard', (lb) => {
       document.getElementById('leaderboard').innerHTML = lb.map((p, i) =>
         '<div class="leaderboard-item ' + (i < 3 ? 'rank-' + (i+1) : '') + '">' +
-        '<span>#' + p.rank + ' ' + p.name + '</span><span>' + p.score + '</span></div>'
+        '<span class="lb-name">#' + p.rank + ' ' + p.name + '</span>' +
+        '<span class="lb-score">' + p.score + '</span>' +
+        '<span class="lb-check">' + (p.answered ? '\\u2714' : '') + '</span></div>'
       ).join('');
     });
 
