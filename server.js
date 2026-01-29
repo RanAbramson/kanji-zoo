@@ -348,8 +348,8 @@ const hostHTML = `<!DOCTYPE html>
     .lobby-players { background: #faf6ed; border: 1px solid #c4b8a8; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-radius: 6px; padding: 20px; margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto; }
     .lobby-players h3 { margin-bottom: 15px; color: #c03030; text-align: center; }
     .lobby-start { text-align: center; margin-bottom: 30px; }
-    /* Game screen — 3-column layout */
-    .game-screen { display: grid; grid-template-columns: 240px 1fr 240px; grid-template-rows: auto 1fr; gap: 20px; }
+    /* Game screen — 2-column layout */
+    .game-screen { display: grid; grid-template-columns: 1fr 260px; grid-template-rows: auto 1fr; gap: 20px; }
     .game-controls { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
     .game-main { background: #faf6ed; border: 1px solid #c4b8a8; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-radius: 6px; padding: 40px; text-align: center; min-height: 300px; position: relative; }
     .question-num { color: #6b6b6b; font-size: 1.2rem; margin-bottom: 20px; }
@@ -413,16 +413,12 @@ const hostHTML = `<!DOCTYPE html>
     <!-- GAME SCREEN -->
     <div class="game-screen hidden" id="gameScreen">
       <div class="game-controls" id="controls"></div>
-      <div class="panel" id="leaderboardPanel">
-        <h3>Leaderboard</h3>
-        <div id="leaderboard"></div>
-      </div>
       <div class="game-main" id="mainDisplay">
         <p style="font-size: 2rem; color: #6b6b6b;">Starting...</p>
       </div>
       <div class="panel" id="playersPanel">
         <h3>Players (<span id="playerCount">0</span>)</h3>
-        <ul class="player-list" id="playerList"></ul>
+        <div id="leaderboard"></div>
       </div>
     </div>
   </div>
@@ -523,7 +519,7 @@ const hostHTML = `<!DOCTYPE html>
       document.getElementById('gameScreen').classList.remove('hidden');
     }
 
-    // Update player list (both lobby and game panels)
+    // Update player list (lobby panel + game panel count)
     socket.on('playerList', (players) => {
       if (players.length > lastPlayerCount) SoundFX.playerJoin();
       lastPlayerCount = players.length;
@@ -531,7 +527,6 @@ const hostHTML = `<!DOCTYPE html>
       document.getElementById('lobbyPlayerCount').textContent = players.length;
       document.getElementById('lobbyPlayerList').innerHTML = listHtml;
       document.getElementById('playerCount').textContent = players.length;
-      document.getElementById('playerList').innerHTML = listHtml;
     });
 
     // Update leaderboard
