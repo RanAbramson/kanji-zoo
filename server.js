@@ -200,6 +200,12 @@ function checkAllAnswered() {
 io.on('connection', (socket) => {
   console.log('Connected:', socket.id);
 
+  // Send current state to every new connection (host refresh, late join, etc.)
+  setTimeout(() => {
+    socket.emit('playerList', Object.values(gameState.players).map(p => p.name));
+    socket.emit('leaderboard', getLeaderboard());
+  }, 50);
+
   // Player joins
   socket.on('join', (name) => {
     gameState.players[socket.id] = {
@@ -367,13 +373,13 @@ const hostHTML = `<!DOCTYPE html>
     .lb-name { flex: 1; }
     .lb-score { font-weight: 700; min-width: 40px; text-align: right; }
     .lb-check { width: 20px; text-align: center; margin-left: 8px; font-size: 0.9rem; }
-    .rank-1 { color: gold; font-weight: bold; }
-    .rank-2 { color: silver; }
-    .rank-3 { color: #cd7f32; }
+    .rank-1 { color: #c03030; font-weight: bold; }
+    .rank-2 { color: #1a1a1a; font-weight: bold; }
+    .rank-3 { color: #6b6b6b; font-weight: bold; }
     .final-results { text-align: center; }
     .final-results h2 { font-size: 2.5rem; margin-bottom: 30px; }
     .winner { font-size: 4rem; margin: 20px 0; }
-    .winner-name { color: gold; font-size: 3rem; }
+    .winner-name { color: #c03030; font-size: 3rem; }
     .timer { font-size: 4rem; font-weight: 700; color: #faf6ed; background: #1a1a1a; width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.25); border: 3px solid #2b2b2b; transition: background 0.3s, transform 0.3s; }
     .timer.urgent { background: #c03030; border-color: #c03030; animation: pulse-scale 0.5s infinite alternate; box-shadow: 0 4px 15px rgba(192,48,48,0.5); }
     @keyframes pulse-scale { from { opacity: 1; transform: scale(1); } to { opacity: 0.7; transform: scale(1.1); } }
