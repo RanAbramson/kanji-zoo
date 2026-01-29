@@ -367,6 +367,9 @@ const hostHTML = `<!DOCTYPE html>
     .timer.urgent { background: #c03030; border-color: #c03030; animation: pulse-scale 0.5s infinite alternate; box-shadow: 0 4px 15px rgba(192,48,48,0.5); }
     @keyframes pulse-scale { from { opacity: 1; transform: scale(1); } to { opacity: 0.7; transform: scale(1.1); } }
     .paused-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(247,243,233,0.92); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #1a1a1a; font-weight: 700; border-radius: 6px; letter-spacing: 0.1em; }
+    .confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 200; }
+    .confetti-piece { position: absolute; top: -60px; font-size: 2.5rem; animation: confetti-fall linear forwards; }
+    @keyframes confetti-fall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
   </style>
 </head>
 <body>
@@ -438,6 +441,25 @@ const hostHTML = `<!DOCTYPE html>
       }
     };
     document.addEventListener('click', () => SoundFX.init(), { once: true });
+
+    const ANIMAL_EMOJIS = ['🐕','🐱','🐦','🐟','🐴','🐄','🐛','🐑','🐻','🐷','🐰','🐘'];
+    function launchConfetti() {
+      const existing = document.querySelector('.confetti-container');
+      if (existing) existing.remove();
+      const container = document.createElement('div');
+      container.className = 'confetti-container';
+      document.body.appendChild(container);
+      for (let i = 0; i < 40; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.textContent = ANIMAL_EMOJIS[Math.floor(Math.random() * ANIMAL_EMOJIS.length)];
+        piece.style.left = Math.random() * 100 + '%';
+        piece.style.animationDuration = (3 + Math.random() * 3) + 's';
+        piece.style.animationDelay = (Math.random() * 2) + 's';
+        container.appendChild(piece);
+      }
+      setTimeout(() => container.remove(), 8000);
+    }
 
     // Show join URL and QR code
     const joinUrl = window.location.origin;
@@ -536,6 +558,7 @@ const hostHTML = `<!DOCTYPE html>
     // Game over
     socket.on('gameOver', (lb) => {
       SoundFX.gameOver();
+      launchConfetti();
       stopCountdown();
       currentPhase = 'results';
       const winner = lb[0];
@@ -645,6 +668,9 @@ const playerHTML = `<!DOCTYPE html>
     .waiting { text-align: center; font-size: 1.5rem; color: #6b6b6b; padding: 50px 0; }
     .hidden { display: none !important; }
     .paused-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(247,243,233,0.92); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: #1a1a1a; font-weight: 700; z-index: 100; letter-spacing: 0.1em; }
+    .confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 200; }
+    .confetti-piece { position: absolute; top: -60px; font-size: 2rem; animation: confetti-fall linear forwards; }
+    @keyframes confetti-fall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
   </style>
 </head>
 <body>
@@ -725,6 +751,25 @@ const playerHTML = `<!DOCTYPE html>
       }
     };
     document.addEventListener('click', () => SoundFX.init(), { once: true });
+
+    const ANIMAL_EMOJIS = ['🐕','🐱','🐦','🐟','🐴','🐄','🐛','🐑','🐻','🐷','🐰','🐘'];
+    function launchConfetti() {
+      const existing = document.querySelector('.confetti-container');
+      if (existing) existing.remove();
+      const container = document.createElement('div');
+      container.className = 'confetti-container';
+      document.body.appendChild(container);
+      for (let i = 0; i < 25; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.textContent = ANIMAL_EMOJIS[Math.floor(Math.random() * ANIMAL_EMOJIS.length)];
+        piece.style.left = Math.random() * 100 + '%';
+        piece.style.animationDuration = (3 + Math.random() * 3) + 's';
+        piece.style.animationDelay = (Math.random() * 2) + 's';
+        container.appendChild(piece);
+      }
+      setTimeout(() => container.remove(), 8000);
+    }
 
     function stopCountdown() {
       if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
@@ -829,6 +874,7 @@ const playerHTML = `<!DOCTYPE html>
 
     socket.on('gameOver', (lb) => {
       SoundFX.gameOver();
+      launchConfetti();
       stopCountdown();
       document.getElementById('questionArea').classList.add('hidden');
       document.getElementById('resultArea').classList.add('hidden');
