@@ -321,7 +321,7 @@ const hostHTML = `<!DOCTYPE html>
 <html><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kanji Zoo - Host</title>
+  <title>漢字の動物園 - Host</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -367,8 +367,8 @@ const hostHTML = `<!DOCTYPE html>
 </head>
 <body>
   <div class="container">
-    <h1>🎌 Kanji Zoo 🎌</h1>
-    <p class="subtitle">Animal Kanji Memory Game</p>
+    <h1>漢字の動物園</h1>
+    <p class="subtitle">Kanji Zoo — Animal Kanji Memory Game</p>
 
     <div class="join-info">
       <p>Players join at:</p>
@@ -386,11 +386,11 @@ const hostHTML = `<!DOCTYPE html>
 
     <div class="sidebar">
       <div class="panel">
-        <h3>👥 Players (<span id="playerCount">0</span>)</h3>
+        <h3>Players (<span id="playerCount">0</span>)</h3>
         <ul class="player-list" id="playerList"></ul>
       </div>
       <div class="panel">
-        <h3>🏆 Leaderboard</h3>
+        <h3>Leaderboard</h3>
         <div id="leaderboard"></div>
       </div>
     </div>
@@ -536,8 +536,8 @@ const hostHTML = `<!DOCTYPE html>
       currentPhase = 'results';
       const winner = lb[0];
       document.getElementById('mainDisplay').innerHTML =
-        '<div class="final-results"><h2>🎉 Game Over! 🎉</h2>' +
-        '<div class="winner">👑</div>' +
+        '<div class="final-results"><h2>Game Over</h2>' +
+        '<div class="winner">&#x7D42;</div>' +
         '<div class="winner-name">' + (winner ? winner.name : 'No players') + '</div>' +
         '<p style="font-size:1.5rem;color:#6b6b6b;margin-top:10px;">' + (winner ? winner.score + ' points' : '') + '</p></div>';
       updateControls();
@@ -599,7 +599,7 @@ const playerHTML = `<!DOCTYPE html>
 <html><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Kanji Zoo - Play</title>
+  <title>漢字の動物園 - Play</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -637,7 +637,7 @@ const playerHTML = `<!DOCTYPE html>
 </head>
 <body>
   <div class="container">
-    <h1>🎌 Kanji Zoo 🎌</h1>
+    <h1>漢字の動物園</h1>
 
     <div class="join-form" id="joinForm">
       <input type="text" id="nameInput" placeholder="Your name" maxlength="15">
@@ -824,7 +824,7 @@ const playerHTML = `<!DOCTYPE html>
 
       const myRank = lb.findIndex(p => p.score === myScore) + 1;
       document.getElementById('waitingArea').innerHTML =
-        '<p class="waiting">🎉 Game Over! 🎉</p>' +
+        '<p class="waiting">Game Over — 終</p>' +
         '<p class="waiting">Your score: ' + myScore + '</p>' +
         '<p class="waiting">Rank: #' + myRank + '</p>';
     });
