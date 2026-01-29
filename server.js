@@ -322,35 +322,36 @@ const hostHTML = `<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kanji Zoo - Host</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', sans-serif; background: #f5f0eb; color: #2c2c2c; min-height: 100vh; padding: 20px; }
+    body { font-family: 'Noto Serif JP', serif; background: #f7f3e9; color: #1a1a1a; min-height: 100vh; padding: 20px; }
     .container { max-width: 1200px; margin: 0 auto; }
-    h1 { text-align: center; font-size: 3rem; margin-bottom: 10px; color: #bc002d; }
-    .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
-    .join-info { background: #fff; border: 2px solid #bc002d; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 30px; }
-    .join-url { font-size: 1.8rem; color: #bc002d; font-weight: bold; }
-    .main-display { background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-radius: 20px; padding: 40px; text-align: center; min-height: 300px; margin-bottom: 30px; position: relative; }
-    .question-num { color: #888; font-size: 1.2rem; margin-bottom: 20px; }
+    h1 { text-align: center; font-size: 3rem; margin-bottom: 10px; color: #c03030; font-weight: 700; }
+    .subtitle { text-align: center; color: #6b6b6b; margin-bottom: 30px; letter-spacing: 0.05em; }
+    .join-info { background: #faf6ed; border: 1px solid #c4b8a8; padding: 20px; border-radius: 6px; text-align: center; margin-bottom: 30px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .join-url { font-size: 1.8rem; color: #c03030; font-weight: 700; }
+    .main-display { background: #faf6ed; border: 1px solid #c4b8a8; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-radius: 6px; padding: 40px; text-align: center; min-height: 300px; margin-bottom: 30px; position: relative; }
+    .question-num { color: #6b6b6b; font-size: 1.2rem; margin-bottom: 20px; }
     .prompt { font-size: 8rem; margin: 20px 0; }
     .options-display { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 600px; margin: 0 auto; }
-    .option-box { background: #f5f0eb; border: 1px solid #e0d6cc; padding: 30px; border-radius: 15px; font-size: 3rem; }
-    .answer-reveal { background: #eafaea; color: #2c2c2c; padding: 30px; border-radius: 15px; margin-top: 20px; }
+    .option-box { background: #f7f3e9; border: 1px solid #c4b8a8; padding: 30px; border-radius: 6px; font-size: 3rem; }
+    .answer-reveal { background: #e8f0e4; color: #1a1a1a; padding: 30px; border-radius: 6px; margin-top: 20px; border: 1px solid #c4b8a8; }
     .answer-reveal .emoji { font-size: 5rem; }
     .answer-reveal .text { font-size: 2rem; margin-top: 10px; }
     .controls { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 30px; }
-    .btn { padding: 15px 30px; font-size: 1.2rem; border: none; border-radius: 10px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
-    .btn-primary { background: #bc002d; color: white; }
-    .btn-secondary { background: #fff; color: #bc002d; border: 2px solid #bc002d; }
-    .btn-success { background: #1a8d1a; color: white; }
-    .btn-warning { background: #e6a700; color: white; }
+    .btn { padding: 15px 30px; font-size: 1.2rem; border: none; border-radius: 4px; cursor: pointer; font-family: 'Noto Serif JP', serif; transition: transform 0.2s, box-shadow 0.2s; }
+    .btn:hover { transform: translateY(-1px) rotate(-0.5deg); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .btn-primary { background: #c03030; color: #faf6ed; letter-spacing: 0.05em; }
+    .btn-secondary { background: #faf6ed; color: #c03030; border: 1px solid #c03030; }
+    .btn-success { background: #2d7a3a; color: #faf6ed; }
+    .btn-warning { background: #c49000; color: #faf6ed; }
     .sidebar { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .panel { background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-radius: 15px; padding: 20px; }
-    .panel h3 { margin-bottom: 15px; color: #bc002d; }
+    .panel { background: #faf6ed; border: 1px solid #c4b8a8; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-radius: 6px; padding: 20px; }
+    .panel h3 { margin-bottom: 15px; color: #c03030; }
     .player-list { list-style: none; }
-    .player-list li { padding: 8px 0; border-bottom: 1px solid #e0d6cc; }
-    .leaderboard-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e0d6cc; }
+    .player-list li { padding: 8px 0; border-bottom: 1px solid #c4b8a8; }
+    .leaderboard-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #c4b8a8; }
     .rank-1 { color: gold; font-weight: bold; }
     .rank-2 { color: silver; }
     .rank-3 { color: #cd7f32; }
@@ -358,10 +359,10 @@ const hostHTML = `<!DOCTYPE html>
     .final-results h2 { font-size: 2.5rem; margin-bottom: 30px; }
     .winner { font-size: 4rem; margin: 20px 0; }
     .winner-name { color: gold; font-size: 3rem; }
-    .timer { font-size: 4rem; font-weight: bold; color: #fff; background: #bc002d; width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; box-shadow: 0 4px 15px rgba(188,0,45,0.4); transition: background 0.3s, transform 0.3s; }
-    .timer.urgent { background: #ff0000; animation: pulse-scale 0.5s infinite alternate; box-shadow: 0 4px 20px rgba(255,0,0,0.6); }
+    .timer { font-size: 4rem; font-weight: 700; color: #faf6ed; background: #1a1a1a; width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.25); border: 3px solid #2b2b2b; transition: background 0.3s, transform 0.3s; }
+    .timer.urgent { background: #c03030; border-color: #c03030; animation: pulse-scale 0.5s infinite alternate; box-shadow: 0 4px 15px rgba(192,48,48,0.5); }
     @keyframes pulse-scale { from { opacity: 1; transform: scale(1); } to { opacity: 0.7; transform: scale(1.1); } }
-    .paused-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #bc002d; font-weight: bold; border-radius: 20px; }
+    .paused-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(247,243,233,0.92); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #1a1a1a; font-weight: 700; border-radius: 6px; letter-spacing: 0.1em; }
   </style>
 </head>
 <body>
@@ -376,7 +377,7 @@ const hostHTML = `<!DOCTYPE html>
     </div>
 
     <div class="main-display" id="mainDisplay">
-      <p style="font-size: 2rem; color: #888;">Waiting for players...</p>
+      <p style="font-size: 2rem; color: #6b6b6b;">Waiting for players...</p>
     </div>
 
     <div class="controls" id="controls">
@@ -437,7 +438,7 @@ const hostHTML = `<!DOCTYPE html>
     // Show join URL and QR code
     const joinUrl = window.location.origin;
     document.getElementById('joinUrl').textContent = window.location.host;
-    QRCode.toCanvas(document.getElementById('qrcode'), joinUrl, { width: 200, margin: 1, color: { dark: '#bc002d', light: '#ffffff' } });
+    QRCode.toCanvas(document.getElementById('qrcode'), joinUrl, { width: 200, margin: 1, color: { dark: '#1a1a1a', light: '#faf6ed' } });
 
     function stopCountdown() {
       if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
@@ -506,7 +507,7 @@ const hostHTML = `<!DOCTYPE html>
         '<div class="timer" id="hostTimer">10</div>' +
         '<p class="question-num">Question ' + data.questionNumber + ' / ' + data.total + ' (Hiragana)</p>' +
         '<div class="prompt">' + q.prompt + '</div>' +
-        '<p style="color:#888;margin-bottom:20px;">Match the hiragana reading</p>' +
+        '<p style="color:#6b6b6b;margin-bottom:20px;">Match the hiragana reading</p>' +
         '<div class="options-display">' + q.options.map(o =>
           '<div class="option-box">' + o.display + '</div>'
         ).join('') + '</div>';
@@ -538,7 +539,7 @@ const hostHTML = `<!DOCTYPE html>
         '<div class="final-results"><h2>🎉 Game Over! 🎉</h2>' +
         '<div class="winner">👑</div>' +
         '<div class="winner-name">' + (winner ? winner.name : 'No players') + '</div>' +
-        '<p style="font-size:1.5rem;color:#888;margin-top:10px;">' + (winner ? winner.score + ' points' : '') + '</p></div>';
+        '<p style="font-size:1.5rem;color:#6b6b6b;margin-top:10px;">' + (winner ? winner.score + ' points' : '') + '</p></div>';
       updateControls();
     });
 
@@ -565,7 +566,7 @@ const hostHTML = `<!DOCTYPE html>
       stopCountdown();
       currentPhase = 'lobby';
       isPaused = false;
-      document.getElementById('mainDisplay').innerHTML = '<p style="font-size: 2rem; color: #888;">Waiting for players...</p>';
+      document.getElementById('mainDisplay').innerHTML = '<p style="font-size: 2rem; color: #6b6b6b;">Waiting for players...</p>';
       updateControls();
     });
 
@@ -599,38 +600,39 @@ const playerHTML = `<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Kanji Zoo - Play</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', sans-serif; background: #f5f0eb; color: #2c2c2c; min-height: 100vh; display: flex; flex-direction: column; }
+    body { font-family: 'Noto Serif JP', serif; background: #f7f3e9; color: #1a1a1a; min-height: 100vh; display: flex; flex-direction: column; }
     .container { flex: 1; display: flex; flex-direction: column; padding: 20px; max-width: 500px; margin: 0 auto; width: 100%; }
-    h1 { text-align: center; font-size: 2rem; margin-bottom: 20px; color: #bc002d; }
+    h1 { text-align: center; font-size: 2rem; margin-bottom: 20px; color: #c03030; font-weight: 700; }
     .join-form { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; }
-    .join-form input { width: 100%; padding: 20px; font-size: 1.5rem; background: #fff; color: #2c2c2c; border: 2px solid #e0d6cc; border-radius: 15px; text-align: center; }
-    .btn { width: 100%; padding: 20px; font-size: 1.5rem; border: none; border-radius: 15px; cursor: pointer; transition: transform 0.1s; }
+    .join-form input { width: 100%; padding: 20px; font-size: 1.5rem; background: #faf6ed; color: #1a1a1a; border: 1px solid #c4b8a8; border-radius: 6px; text-align: center; font-family: 'Noto Serif JP', serif; }
+    .btn { width: 100%; padding: 20px; font-size: 1.5rem; border: none; border-radius: 4px; cursor: pointer; font-family: 'Noto Serif JP', serif; transition: transform 0.1s; }
     .btn:active { transform: scale(0.98); }
-    .btn-primary { background: #bc002d; color: white; }
-    .btn-disabled { background: #ddd; color: #999; }
+    .btn-primary { background: #c03030; color: #faf6ed; letter-spacing: 0.05em; }
+    .btn-disabled { background: #d5cfc5; color: #8a8378; }
     .game-view { flex: 1; display: flex; flex-direction: column; }
-    .status { text-align: center; padding: 15px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; }
-    .score { font-size: 1.5rem; font-weight: bold; color: #bc002d; }
-    .player-timer { font-size: 1.8rem; font-weight: bold; color: #fff; background: #bc002d; width: 50px; height: 50px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(188,0,45,0.3); transition: background 0.3s, transform 0.3s; }
+    .status { text-align: center; padding: 15px; background: #faf6ed; border: 1px solid #c4b8a8; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-radius: 6px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; }
+    .score { font-size: 1.5rem; font-weight: 700; color: #c03030; }
+    .player-timer { font-size: 1.8rem; font-weight: 700; color: #faf6ed; background: #1a1a1a; width: 50px; height: 50px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.2); border: 2px solid #2b2b2b; transition: background 0.3s, transform 0.3s; }
     .player-timer:empty { display: none; }
-    .player-timer.urgent { background: #ff0000; animation: player-pulse 0.5s infinite alternate; box-shadow: 0 2px 12px rgba(255,0,0,0.5); }
+    .player-timer.urgent { background: #c03030; border-color: #c03030; animation: player-pulse 0.5s infinite alternate; box-shadow: 0 2px 10px rgba(192,48,48,0.5); }
     @keyframes player-pulse { from { transform: scale(1); } to { transform: scale(1.15); } }
     .prompt { text-align: center; font-size: 5rem; margin: 20px 0; }
     .options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; flex: 1; }
-    .option { display: flex; align-items: center; justify-content: center; font-size: 3rem; background: #fff; border: 2px solid #e0d6cc; border-radius: 15px; color: #2c2c2c; cursor: pointer; transition: background 0.2s, transform 0.1s; min-height: 100px; }
+    .option { display: flex; align-items: center; justify-content: center; font-size: 3rem; background: #faf6ed; border: 1px solid #c4b8a8; border-radius: 6px; color: #1a1a1a; cursor: pointer; transition: background 0.2s, transform 0.1s; min-height: 100px; }
     .option:active { transform: scale(0.98); }
-    .option.correct { background: #1a8d1a; color: white; }
-    .option.wrong { background: #bc002d; color: white; }
+    .option.correct { background: #2d7a3a; color: #faf6ed; }
+    .option.wrong { background: #c03030; color: #faf6ed; }
     .option.disabled { opacity: 0.5; pointer-events: none; }
     .result { text-align: center; padding: 30px; }
     .result-icon { font-size: 4rem; }
     .result-text { font-size: 1.5rem; margin-top: 10px; }
-    .result-points { font-size: 2rem; color: #bc002d; margin-top: 10px; }
-    .waiting { text-align: center; font-size: 1.5rem; color: #888; padding: 50px 0; }
+    .result-points { font-size: 2rem; color: #c03030; margin-top: 10px; }
+    .waiting { text-align: center; font-size: 1.5rem; color: #6b6b6b; padding: 50px 0; }
     .hidden { display: none !important; }
-    .paused-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: #bc002d; font-weight: bold; z-index: 100; }
+    .paused-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(247,243,233,0.92); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: #1a1a1a; font-weight: 700; z-index: 100; letter-spacing: 0.1em; }
   </style>
 </head>
 <body>
