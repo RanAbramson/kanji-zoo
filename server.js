@@ -233,32 +233,32 @@ const hostHTML = `<!DOCTYPE html>
   <title>Kanji Zoo - Host</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; min-height: 100vh; padding: 20px; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f0eb; color: #2c2c2c; min-height: 100vh; padding: 20px; }
     .container { max-width: 1200px; margin: 0 auto; }
-    h1 { text-align: center; font-size: 3rem; margin-bottom: 10px; text-shadow: 0 0 20px rgba(255,200,100,0.5); }
-    .subtitle { text-align: center; color: #aaa; margin-bottom: 30px; }
-    .join-info { background: #0f3460; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 30px; }
-    .join-url { font-size: 1.8rem; color: #e94560; font-weight: bold; }
-    .main-display { background: #0f3460; border-radius: 20px; padding: 40px; text-align: center; min-height: 300px; margin-bottom: 30px; }
-    .question-num { color: #aaa; font-size: 1.2rem; margin-bottom: 20px; }
+    h1 { text-align: center; font-size: 3rem; margin-bottom: 10px; color: #bc002d; }
+    .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
+    .join-info { background: #fff; border: 2px solid #bc002d; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 30px; }
+    .join-url { font-size: 1.8rem; color: #bc002d; font-weight: bold; }
+    .main-display { background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-radius: 20px; padding: 40px; text-align: center; min-height: 300px; margin-bottom: 30px; }
+    .question-num { color: #888; font-size: 1.2rem; margin-bottom: 20px; }
     .prompt { font-size: 8rem; margin: 20px 0; }
     .options-display { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 600px; margin: 0 auto; }
-    .option-box { background: #16213e; padding: 30px; border-radius: 15px; font-size: 3rem; }
-    .answer-reveal { background: #1a4d1a; padding: 30px; border-radius: 15px; margin-top: 20px; }
+    .option-box { background: #f5f0eb; border: 1px solid #e0d6cc; padding: 30px; border-radius: 15px; font-size: 3rem; }
+    .answer-reveal { background: #eafaea; color: #2c2c2c; padding: 30px; border-radius: 15px; margin-top: 20px; }
     .answer-reveal .emoji { font-size: 5rem; }
     .answer-reveal .text { font-size: 2rem; margin-top: 10px; }
     .controls { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 30px; }
     .btn { padding: 15px 30px; font-size: 1.2rem; border: none; border-radius: 10px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
     .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
-    .btn-primary { background: #e94560; color: white; }
-    .btn-secondary { background: #0f3460; color: white; }
+    .btn-primary { background: #bc002d; color: white; }
+    .btn-secondary { background: #fff; color: #bc002d; border: 2px solid #bc002d; }
     .btn-success { background: #1a8d1a; color: white; }
     .sidebar { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .panel { background: #0f3460; border-radius: 15px; padding: 20px; }
-    .panel h3 { margin-bottom: 15px; color: #e94560; }
+    .panel { background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-radius: 15px; padding: 20px; }
+    .panel h3 { margin-bottom: 15px; color: #bc002d; }
     .player-list { list-style: none; }
-    .player-list li { padding: 8px 0; border-bottom: 1px solid #16213e; }
-    .leaderboard-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #16213e; }
+    .player-list li { padding: 8px 0; border-bottom: 1px solid #e0d6cc; }
+    .leaderboard-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e0d6cc; }
     .rank-1 { color: gold; font-weight: bold; }
     .rank-2 { color: silver; }
     .rank-3 { color: #cd7f32; }
@@ -279,7 +279,7 @@ const hostHTML = `<!DOCTYPE html>
     </div>
     
     <div class="main-display" id="mainDisplay">
-      <p style="font-size: 2rem; color: #aaa;">Waiting for players...</p>
+      <p style="font-size: 2rem; color: #888;">Waiting for players...</p>
     </div>
     
     <div class="controls" id="controls">
@@ -340,7 +340,7 @@ const hostHTML = `<!DOCTYPE html>
       document.getElementById('mainDisplay').innerHTML = 
         '<p class="question-num">Hiragana Round</p>' +
         '<div class="prompt">' + q.prompt + '</div>' +
-        '<p style="color:#aaa;margin-bottom:20px;">Match the hiragana reading</p>' +
+        '<p style="color:#888;margin-bottom:20px;">Match the hiragana reading</p>' +
         '<div class="options-display">' + q.options.map(o => 
           '<div class="option-box">' + o.display + '</div>'
         ).join('') + '</div>';
@@ -364,14 +364,14 @@ const hostHTML = `<!DOCTYPE html>
         '<div class="final-results"><h2>🎉 Game Over! 🎉</h2>' +
         '<div class="winner">👑</div>' +
         '<div class="winner-name">' + (winner ? winner.name : 'No players') + '</div>' +
-        '<p style="font-size:1.5rem;color:#aaa;margin-top:10px;">' + (winner ? winner.score + ' points' : '') + '</p></div>';
+        '<p style="font-size:1.5rem;color:#888;margin-top:10px;">' + (winner ? winner.score + ' points' : '') + '</p></div>';
       updateControls();
     });
     
     // Game reset
     socket.on('gameReset', () => {
       currentPhase = 'lobby';
-      document.getElementById('mainDisplay').innerHTML = '<p style="font-size: 2rem; color: #aaa;">Waiting for players...</p>';
+      document.getElementById('mainDisplay').innerHTML = '<p style="font-size: 2rem; color: #888;">Waiting for players...</p>';
       updateControls();
     });
     
@@ -412,30 +412,30 @@ const playerHTML = `<!DOCTYPE html>
   <title>Kanji Zoo - Play</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; min-height: 100vh; display: flex; flex-direction: column; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f0eb; color: #2c2c2c; min-height: 100vh; display: flex; flex-direction: column; }
     .container { flex: 1; display: flex; flex-direction: column; padding: 20px; max-width: 500px; margin: 0 auto; width: 100%; }
-    h1 { text-align: center; font-size: 2rem; margin-bottom: 20px; }
+    h1 { text-align: center; font-size: 2rem; margin-bottom: 20px; color: #bc002d; }
     .join-form { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; }
-    .join-form input { width: 100%; padding: 20px; font-size: 1.5rem; border: none; border-radius: 15px; text-align: center; }
+    .join-form input { width: 100%; padding: 20px; font-size: 1.5rem; background: #fff; color: #2c2c2c; border: 2px solid #e0d6cc; border-radius: 15px; text-align: center; }
     .btn { width: 100%; padding: 20px; font-size: 1.5rem; border: none; border-radius: 15px; cursor: pointer; transition: transform 0.1s; }
     .btn:active { transform: scale(0.98); }
-    .btn-primary { background: #e94560; color: white; }
-    .btn-disabled { background: #333; color: #666; }
+    .btn-primary { background: #bc002d; color: white; }
+    .btn-disabled { background: #ddd; color: #999; }
     .game-view { flex: 1; display: flex; flex-direction: column; }
-    .status { text-align: center; padding: 15px; background: #0f3460; border-radius: 15px; margin-bottom: 20px; }
-    .score { font-size: 2rem; font-weight: bold; color: #e94560; }
+    .status { text-align: center; padding: 15px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 15px; margin-bottom: 20px; }
+    .score { font-size: 2rem; font-weight: bold; color: #bc002d; }
     .prompt { text-align: center; font-size: 5rem; margin: 20px 0; }
     .options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; flex: 1; }
-    .option { display: flex; align-items: center; justify-content: center; font-size: 3rem; background: #0f3460; border: none; border-radius: 15px; color: white; cursor: pointer; transition: background 0.2s, transform 0.1s; min-height: 100px; }
+    .option { display: flex; align-items: center; justify-content: center; font-size: 3rem; background: #fff; border: 2px solid #e0d6cc; border-radius: 15px; color: #2c2c2c; cursor: pointer; transition: background 0.2s, transform 0.1s; min-height: 100px; }
     .option:active { transform: scale(0.98); }
-    .option.correct { background: #1a8d1a; }
-    .option.wrong { background: #8d1a1a; }
+    .option.correct { background: #1a8d1a; color: white; }
+    .option.wrong { background: #bc002d; color: white; }
     .option.disabled { opacity: 0.5; pointer-events: none; }
     .result { text-align: center; padding: 30px; }
     .result-icon { font-size: 4rem; }
     .result-text { font-size: 1.5rem; margin-top: 10px; }
-    .result-points { font-size: 2rem; color: #e94560; margin-top: 10px; }
-    .waiting { text-align: center; font-size: 1.5rem; color: #aaa; padding: 50px 0; }
+    .result-points { font-size: 2rem; color: #bc002d; margin-top: 10px; }
+    .waiting { text-align: center; font-size: 1.5rem; color: #888; padding: 50px 0; }
     .hidden { display: none !important; }
   </style>
 </head>
