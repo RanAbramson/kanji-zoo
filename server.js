@@ -22,16 +22,26 @@ const animals = [
   { kanji: '象', hiragana: 'ぞう', english: 'elephant', emoji: '🐘' }
 ];
 
+// === GAME CONSTANTS ===
+const TIME_LIMIT = 10000;    // 10 seconds per question
+const REVEAL_TIME = 3500;    // 3.5 seconds to show answer
+const TOTAL_ANIMALS = 10;    // 10 animals × 2 (kanji + hiragana) = 20 questions
+
 // === GAME STATE ===
 let gameState = {
-  phase: 'lobby', // lobby, question, hiragana, results
-  players: {},    // { odId: { name, score, answered, lastAnswer } }
+  phase: 'lobby', // lobby, playing, results
+  players: {},
   currentQuestion: null,
   currentAnimal: null,
   questionStartTime: null,
   questionNumber: 0,
-  totalQuestions: 10,
-  usedAnimals: []
+  totalQuestions: TOTAL_ANIMALS * 2,
+  usedAnimals: [],
+  timerHandle: null,
+  paused: false,
+  pausedTimeRemaining: null,
+  currentStep: 'kanji', // 'kanji' or 'hiragana'
+  animalIndex: 0
 };
 
 // === HELPER FUNCTIONS ===
@@ -45,24 +55,20 @@ function shuffle(arr) {
 }
 
 function generateQuestion() {
-  // Pick an animal not yet used (or reset if all used)
   let available = animals.filter(a => !gameState.usedAnimals.includes(a.kanji));
   if (available.length === 0) {
     gameState.usedAnimals = [];
     available = animals;
   }
-  
+
   const correct = available[Math.floor(Math.random() * available.length)];
   gameState.usedAnimals.push(correct.kanji);
   gameState.currentAnimal = correct;
-  
-  // Randomly choose question type
+
   const isKanjiToAnimal = Math.random() > 0.5;
-  
-  // Get 3 wrong answers
   const wrong = shuffle(animals.filter(a => a.kanji !== correct.kanji)).slice(0, 3);
   const options = shuffle([correct, ...wrong]);
-  
+
   return {
     type: isKanjiToAnimal ? 'kanjiToAnimal' : 'animalToKanji',
     prompt: isKanjiToAnimal ? correct.kanji : correct.emoji,
@@ -78,7 +84,7 @@ function generateHiraganaQuestion() {
   const correct = gameState.currentAnimal;
   const wrong = shuffle(animals.filter(a => a.kanji !== correct.kanji)).slice(0, 3);
   const options = shuffle([correct, ...wrong]);
-  
+
   return {
     type: 'hiragana',
     prompt: correct.kanji,
@@ -91,9 +97,7 @@ function generateHiraganaQuestion() {
 }
 
 function calculateScore(timeMs) {
-  // Max 1000 points, decreases over 10 seconds
-  const maxTime = 10000;
-  const points = Math.max(100, Math.round(1000 - (timeMs / maxTime) * 900));
+  const points = Math.max(100, Math.round(1000 - (timeMs / TIME_LIMIT) * 900));
   return points;
 }
 
@@ -110,10 +114,87 @@ function resetPlayerAnswers() {
   }
 }
 
+function clearGameTimer() {
+  if (gameState.timerHandle) {
+    clearTimeout(gameState.timerHandle);
+    gameState.timerHandle = null;
+  }
+}
+
+// === AUTO-ADVANCE ENGINE ===
+function runNextStep() {
+  clearGameTimer();
+  resetPlayerAnswers();
+
+  if (gameState.animalIndex >= TOTAL_ANIMALS) {
+    gameState.phase = 'results';
+    io.emit('gameOver', getLeaderboard());
+    return;
+  }
+
+  gameState.questionNumber++;
+
+  if (gameState.currentStep === 'kanji') {
+    gameState.currentQuestion = generateQuestion();
+    gameState.questionStartTime = Date.now();
+    io.emit('newQuestion', {
+      question: gameState.currentQuestion,
+      questionNumber: gameState.questionNumber,
+      total: gameState.totalQuestions,
+      timeLimit: TIME_LIMIT
+    });
+  } else {
+    gameState.currentQuestion = generateHiraganaQuestion();
+    gameState.questionStartTime = Date.now();
+    io.emit('hiraganaQuestion', {
+      question: gameState.currentQuestion,
+      questionNumber: gameState.questionNumber,
+      total: gameState.totalQuestions,
+      timeLimit: TIME_LIMIT
+    });
+  }
+
+  gameState.timerHandle = setTimeout(onTimerExpired, TIME_LIMIT);
+}
+
+function onTimerExpired() {
+  clearGameTimer();
+  const animal = gameState.currentAnimal;
+  io.emit('timeUp');
+  io.emit('showAnswer', {
+    kanji: animal.kanji,
+    hiragana: animal.hiragana,
+    english: animal.english,
+    emoji: animal.emoji
+  });
+  gameState.timerHandle = setTimeout(advanceAfterReveal, REVEAL_TIME);
+}
+
+function advanceAfterReveal() {
+  clearGameTimer();
+  if (gameState.currentStep === 'kanji') {
+    gameState.currentStep = 'hiragana';
+  } else {
+    gameState.currentStep = 'kanji';
+    gameState.animalIndex++;
+  }
+  runNextStep();
+}
+
+function checkAllAnswered() {
+  const players = Object.values(gameState.players);
+  if (players.length === 0) return;
+  const allAnswered = players.every(p => p.answered);
+  if (allAnswered) {
+    clearGameTimer();
+    onTimerExpired();
+  }
+}
+
 // === SOCKET HANDLING ===
 io.on('connection', (socket) => {
   console.log('Connected:', socket.id);
-  
+
   // Player joins
   socket.on('join', (name) => {
     gameState.players[socket.id] = {
@@ -127,16 +208,16 @@ io.on('connection', (socket) => {
     io.emit('leaderboard', getLeaderboard());
     console.log(`${name} joined`);
   });
-  
+
   // Player answers
   socket.on('answer', (answerId) => {
     const player = gameState.players[socket.id];
-    if (!player || player.answered || !gameState.currentQuestion) return;
-    
+    if (!player || player.answered || !gameState.currentQuestion || gameState.paused) return;
+
     player.answered = true;
     const timeMs = Date.now() - gameState.questionStartTime;
     const correct = answerId === gameState.currentQuestion.correctId;
-    
+
     if (correct) {
       const points = calculateScore(timeMs);
       player.score += points;
@@ -144,69 +225,61 @@ io.on('connection', (socket) => {
     } else {
       player.lastAnswer = { correct: false, points: 0 };
     }
-    
+
     socket.emit('answerResult', player.lastAnswer);
     io.emit('leaderboard', getLeaderboard());
+    checkAllAnswered();
   });
-  
-  // Host controls
+
+  // Host: Start Game
   socket.on('hostStartGame', () => {
-    gameState.phase = 'question';
+    gameState.phase = 'playing';
     gameState.questionNumber = 0;
     gameState.usedAnimals = [];
+    gameState.animalIndex = 0;
+    gameState.currentStep = 'kanji';
+    gameState.paused = false;
+    gameState.pausedTimeRemaining = null;
+    clearGameTimer();
     for (const id in gameState.players) {
       gameState.players[id].score = 0;
     }
     io.emit('gameStarted');
     io.emit('leaderboard', getLeaderboard());
+    runNextStep();
   });
-  
-  socket.on('hostNextQuestion', () => {
-    gameState.questionNumber++;
-    if (gameState.questionNumber > gameState.totalQuestions) {
-      gameState.phase = 'results';
-      io.emit('gameOver', getLeaderboard());
-      return;
-    }
-    
-    resetPlayerAnswers();
-    gameState.phase = 'question';
-    gameState.currentQuestion = generateQuestion();
-    gameState.questionStartTime = Date.now();
-    
-    io.emit('newQuestion', {
-      question: gameState.currentQuestion,
-      questionNumber: gameState.questionNumber,
-      total: gameState.totalQuestions
-    });
+
+  // Host: Pause Game
+  socket.on('hostPauseGame', () => {
+    if (gameState.phase !== 'playing' || gameState.paused) return;
+    gameState.paused = true;
+    const elapsed = Date.now() - gameState.questionStartTime;
+    gameState.pausedTimeRemaining = Math.max(0, TIME_LIMIT - elapsed);
+    clearGameTimer();
+    io.emit('gamePaused');
   });
-  
-  socket.on('hostHiraganaRound', () => {
-    resetPlayerAnswers();
-    gameState.phase = 'hiragana';
-    gameState.currentQuestion = generateHiraganaQuestion();
-    gameState.questionStartTime = Date.now();
-    
-    io.emit('hiraganaQuestion', {
-      question: gameState.currentQuestion
-    });
+
+  // Host: Resume Game
+  socket.on('hostResumeGame', () => {
+    if (gameState.phase !== 'playing' || !gameState.paused) return;
+    gameState.paused = false;
+    gameState.questionStartTime = Date.now() - (TIME_LIMIT - gameState.pausedTimeRemaining);
+    gameState.timerHandle = setTimeout(onTimerExpired, gameState.pausedTimeRemaining);
+    gameState.pausedTimeRemaining = null;
+    io.emit('gameResumed', { timeRemaining: TIME_LIMIT - (Date.now() - gameState.questionStartTime) });
   });
-  
-  socket.on('hostShowAnswer', () => {
-    const animal = gameState.currentAnimal;
-    io.emit('showAnswer', {
-      kanji: animal.kanji,
-      hiragana: animal.hiragana,
-      english: animal.english,
-      emoji: animal.emoji
-    });
-  });
-  
-  socket.on('hostResetGame', () => {
+
+  // Host: Stop / Reset Game
+  socket.on('hostStopGame', () => {
+    clearGameTimer();
     gameState.phase = 'lobby';
     gameState.questionNumber = 0;
     gameState.usedAnimals = [];
     gameState.currentQuestion = null;
+    gameState.paused = false;
+    gameState.pausedTimeRemaining = null;
+    gameState.animalIndex = 0;
+    gameState.currentStep = 'kanji';
     for (const id in gameState.players) {
       gameState.players[id].score = 0;
       gameState.players[id].answered = false;
@@ -214,7 +287,25 @@ io.on('connection', (socket) => {
     io.emit('gameReset');
     io.emit('leaderboard', getLeaderboard());
   });
-  
+
+  socket.on('hostResetGame', () => {
+    clearGameTimer();
+    gameState.phase = 'lobby';
+    gameState.questionNumber = 0;
+    gameState.usedAnimals = [];
+    gameState.currentQuestion = null;
+    gameState.paused = false;
+    gameState.pausedTimeRemaining = null;
+    gameState.animalIndex = 0;
+    gameState.currentStep = 'kanji';
+    for (const id in gameState.players) {
+      gameState.players[id].score = 0;
+      gameState.players[id].answered = false;
+    }
+    io.emit('gameReset');
+    io.emit('leaderboard', getLeaderboard());
+  });
+
   // Disconnect
   socket.on('disconnect', () => {
     const player = gameState.players[socket.id];
@@ -239,7 +330,7 @@ const hostHTML = `<!DOCTYPE html>
     .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
     .join-info { background: #fff; border: 2px solid #bc002d; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 30px; }
     .join-url { font-size: 1.8rem; color: #bc002d; font-weight: bold; }
-    .main-display { background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-radius: 20px; padding: 40px; text-align: center; min-height: 300px; margin-bottom: 30px; }
+    .main-display { background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-radius: 20px; padding: 40px; text-align: center; min-height: 300px; margin-bottom: 30px; position: relative; }
     .question-num { color: #888; font-size: 1.2rem; margin-bottom: 20px; }
     .prompt { font-size: 8rem; margin: 20px 0; }
     .options-display { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 600px; margin: 0 auto; }
@@ -253,6 +344,7 @@ const hostHTML = `<!DOCTYPE html>
     .btn-primary { background: #bc002d; color: white; }
     .btn-secondary { background: #fff; color: #bc002d; border: 2px solid #bc002d; }
     .btn-success { background: #1a8d1a; color: white; }
+    .btn-warning { background: #e6a700; color: white; }
     .sidebar { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     .panel { background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-radius: 15px; padding: 20px; }
     .panel h3 { margin-bottom: 15px; color: #bc002d; }
@@ -266,27 +358,31 @@ const hostHTML = `<!DOCTYPE html>
     .final-results h2 { font-size: 2.5rem; margin-bottom: 30px; }
     .winner { font-size: 4rem; margin: 20px 0; }
     .winner-name { color: gold; font-size: 3rem; }
+    .timer { font-size: 3rem; font-weight: bold; color: #bc002d; margin-bottom: 10px; }
+    .timer.urgent { color: #ff0000; animation: pulse 0.5s infinite alternate; }
+    @keyframes pulse { from { opacity: 1; } to { opacity: 0.5; } }
+    .paused-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #bc002d; font-weight: bold; border-radius: 20px; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🎌 Kanji Zoo 🎌</h1>
     <p class="subtitle">Animal Kanji Memory Game</p>
-    
+
     <div class="join-info">
       <p>Players join at:</p>
       <p class="join-url" id="joinUrl"></p>
       <canvas id="qrcode" style="margin-top:15px;"></canvas>
     </div>
-    
+
     <div class="main-display" id="mainDisplay">
       <p style="font-size: 2rem; color: #888;">Waiting for players...</p>
     </div>
-    
+
     <div class="controls" id="controls">
-      <button class="btn btn-primary" id="startBtn">Start Game</button>
+      <button class="btn btn-primary" onclick="startGame()">Start Game</button>
     </div>
-    
+
     <div class="sidebar">
       <div class="panel">
         <h3>👥 Players (<span id="playerCount">0</span>)</h3>
@@ -305,6 +401,9 @@ const hostHTML = `<!DOCTYPE html>
     const socket = io();
     let currentPhase = 'lobby';
     let lastPlayerCount = 0;
+    let countdownInterval = null;
+    let isPaused = false;
+    let frozenTime = null;
 
     // Sound effects using Web Audio API
     const SoundFX = {
@@ -324,14 +423,8 @@ const hostHTML = `<!DOCTYPE html>
         o.connect(g); g.connect(this.ctx.destination);
         o.start(); o.stop(this.ctx.currentTime + duration);
       },
-      playerJoin() {
-        this.init();
-        this._tone(500, 0.1, 'sine', 0.15);
-      },
-      question() {
-        this.init();
-        this._tone(880, 0.15, 'sine', 0.2);
-      },
+      playerJoin() { this.init(); this._tone(500, 0.1, 'sine', 0.15); },
+      question() { this.init(); this._tone(880, 0.15, 'sine', 0.2); },
       gameOver() {
         this.init();
         [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this._tone(f, 0.3, 'sine', 0.25), i * 150));
@@ -343,7 +436,26 @@ const hostHTML = `<!DOCTYPE html>
     const joinUrl = window.location.origin;
     document.getElementById('joinUrl').textContent = window.location.host;
     QRCode.toCanvas(document.getElementById('qrcode'), joinUrl, { width: 200, margin: 1, color: { dark: '#bc002d', light: '#ffffff' } });
-    
+
+    function stopCountdown() {
+      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+    }
+
+    function startCountdown(timeLimit) {
+      stopCountdown();
+      const startTime = Date.now();
+      countdownInterval = setInterval(() => {
+        if (isPaused) return;
+        const el = document.getElementById('hostTimer');
+        if (!el) { stopCountdown(); return; }
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, Math.ceil((timeLimit - elapsed) / 1000));
+        el.textContent = remaining;
+        el.className = remaining <= 3 ? 'timer urgent' : 'timer';
+        if (remaining <= 0) stopCountdown();
+      }, 100);
+    }
+
     // Update player list
     socket.on('playerList', (players) => {
       if (players.length > lastPlayerCount) SoundFX.playerJoin();
@@ -351,99 +463,126 @@ const hostHTML = `<!DOCTYPE html>
       document.getElementById('playerCount').textContent = players.length;
       document.getElementById('playerList').innerHTML = players.map(p => '<li>' + p + '</li>').join('');
     });
-    
+
     // Update leaderboard
     socket.on('leaderboard', (lb) => {
-      document.getElementById('leaderboard').innerHTML = lb.map((p, i) => 
+      document.getElementById('leaderboard').innerHTML = lb.map((p, i) =>
         '<div class="leaderboard-item ' + (i < 3 ? 'rank-' + (i+1) : '') + '">' +
         '<span>#' + p.rank + ' ' + p.name + '</span><span>' + p.score + '</span></div>'
       ).join('');
     });
-    
+
     // Question display
     socket.on('newQuestion', (data) => {
       SoundFX.question();
-      currentPhase = 'question';
+      currentPhase = 'playing';
+      isPaused = false;
       const q = data.question;
-      document.getElementById('mainDisplay').innerHTML = 
+      document.getElementById('mainDisplay').innerHTML =
+        '<div class="timer" id="hostTimer">10</div>' +
         '<p class="question-num">Question ' + data.questionNumber + ' / ' + data.total + '</p>' +
         '<div class="prompt">' + q.prompt + '</div>' +
-        '<div class="options-display">' + q.options.map(o => 
+        '<div class="options-display">' + q.options.map(o =>
           '<div class="option-box">' + o.display + '</div>'
         ).join('') + '</div>';
+      startCountdown(data.timeLimit);
       updateControls();
     });
-    
+
     // Hiragana question
     socket.on('hiraganaQuestion', (data) => {
       SoundFX.question();
-      currentPhase = 'hiragana';
+      currentPhase = 'playing';
+      isPaused = false;
       const q = data.question;
-      document.getElementById('mainDisplay').innerHTML = 
-        '<p class="question-num">Hiragana Round</p>' +
+      document.getElementById('mainDisplay').innerHTML =
+        '<div class="timer" id="hostTimer">10</div>' +
+        '<p class="question-num">Question ' + data.questionNumber + ' / ' + data.total + ' (Hiragana)</p>' +
         '<div class="prompt">' + q.prompt + '</div>' +
         '<p style="color:#888;margin-bottom:20px;">Match the hiragana reading</p>' +
-        '<div class="options-display">' + q.options.map(o => 
+        '<div class="options-display">' + q.options.map(o =>
           '<div class="option-box">' + o.display + '</div>'
         ).join('') + '</div>';
+      startCountdown(data.timeLimit);
       updateControls();
     });
-    
+
+    // Time up
+    socket.on('timeUp', () => {
+      stopCountdown();
+      const el = document.getElementById('hostTimer');
+      if (el) { el.textContent = '0'; el.className = 'timer urgent'; }
+    });
+
     // Show answer
     socket.on('showAnswer', (animal) => {
-      currentPhase = 'answer';
-      document.getElementById('mainDisplay').innerHTML += 
+      document.getElementById('mainDisplay').innerHTML +=
         '<div class="answer-reveal"><div class="emoji">' + animal.emoji + '</div>' +
         '<div class="text">' + animal.kanji + ' = ' + animal.hiragana + ' (' + animal.english + ')</div></div>';
-      updateControls();
     });
-    
+
     // Game over
     socket.on('gameOver', (lb) => {
       SoundFX.gameOver();
+      stopCountdown();
       currentPhase = 'results';
       const winner = lb[0];
-      document.getElementById('mainDisplay').innerHTML = 
+      document.getElementById('mainDisplay').innerHTML =
         '<div class="final-results"><h2>🎉 Game Over! 🎉</h2>' +
         '<div class="winner">👑</div>' +
         '<div class="winner-name">' + (winner ? winner.name : 'No players') + '</div>' +
         '<p style="font-size:1.5rem;color:#888;margin-top:10px;">' + (winner ? winner.score + ' points' : '') + '</p></div>';
       updateControls();
     });
-    
+
+    // Game paused
+    socket.on('gamePaused', () => {
+      isPaused = true;
+      const display = document.getElementById('mainDisplay');
+      if (display && !document.getElementById('pausedOverlay')) {
+        display.innerHTML += '<div class="paused-overlay" id="pausedOverlay">PAUSED</div>';
+      }
+      updateControls();
+    });
+
+    // Game resumed
+    socket.on('gameResumed', (data) => {
+      isPaused = false;
+      const overlay = document.getElementById('pausedOverlay');
+      if (overlay) overlay.remove();
+      updateControls();
+    });
+
     // Game reset
     socket.on('gameReset', () => {
+      stopCountdown();
       currentPhase = 'lobby';
+      isPaused = false;
       document.getElementById('mainDisplay').innerHTML = '<p style="font-size: 2rem; color: #888;">Waiting for players...</p>';
       updateControls();
     });
-    
+
     // Control buttons
     function updateControls() {
       let html = '';
       if (currentPhase === 'lobby' || currentPhase === 'results') {
         html = '<button class="btn btn-primary" onclick="startGame()">Start Game</button>';
-      } else if (currentPhase === 'question') {
-        html = '<button class="btn btn-success" onclick="showAnswer()">Show Answer</button>' +
-               '<button class="btn btn-secondary" onclick="hiraganaRound()">Hiragana Round</button>' +
-               '<button class="btn btn-primary" onclick="nextQuestion()">Next Question</button>';
-      } else if (currentPhase === 'hiragana') {
-        html = '<button class="btn btn-success" onclick="showAnswer()">Show Answer</button>' +
-               '<button class="btn btn-primary" onclick="nextQuestion()">Next Question</button>';
-      } else if (currentPhase === 'answer') {
-        html = '<button class="btn btn-secondary" onclick="hiraganaRound()">Hiragana Round</button>' +
-               '<button class="btn btn-primary" onclick="nextQuestion()">Next Question</button>';
+      } else if (currentPhase === 'playing') {
+        if (isPaused) {
+          html = '<button class="btn btn-success" onclick="resumeGame()">Resume</button>';
+        } else {
+          html = '<button class="btn btn-warning" onclick="pauseGame()">Pause</button>';
+        }
+        html += '<button class="btn btn-secondary" onclick="stopGame()">Stop Game</button>';
       }
-      html += '<button class="btn btn-secondary" onclick="resetGame()">Reset Game</button>';
       document.getElementById('controls').innerHTML = html;
     }
-    
-    function startGame() { socket.emit('hostStartGame'); socket.emit('hostNextQuestion'); }
-    function nextQuestion() { socket.emit('hostNextQuestion'); }
-    function hiraganaRound() { socket.emit('hostHiraganaRound'); }
-    function showAnswer() { socket.emit('hostShowAnswer'); }
-    function resetGame() { socket.emit('hostResetGame'); }
-    
+
+    function startGame() { socket.emit('hostStartGame'); }
+    function pauseGame() { socket.emit('hostPauseGame'); }
+    function resumeGame() { socket.emit('hostResumeGame'); }
+    function stopGame() { socket.emit('hostStopGame'); }
+
     updateControls();
   </script>
 </body></html>`;
@@ -465,8 +604,10 @@ const playerHTML = `<!DOCTYPE html>
     .btn-primary { background: #bc002d; color: white; }
     .btn-disabled { background: #ddd; color: #999; }
     .game-view { flex: 1; display: flex; flex-direction: column; }
-    .status { text-align: center; padding: 15px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 15px; margin-bottom: 20px; }
-    .score { font-size: 2rem; font-weight: bold; color: #bc002d; }
+    .status { text-align: center; padding: 15px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; }
+    .score { font-size: 1.5rem; font-weight: bold; color: #bc002d; }
+    .player-timer { font-size: 1.5rem; font-weight: bold; color: #bc002d; }
+    .player-timer.urgent { color: #ff0000; }
     .prompt { text-align: center; font-size: 5rem; margin: 20px 0; }
     .options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; flex: 1; }
     .option { display: flex; align-items: center; justify-content: center; font-size: 3rem; background: #fff; border: 2px solid #e0d6cc; border-radius: 15px; color: #2c2c2c; cursor: pointer; transition: background 0.2s, transform 0.1s; min-height: 100px; }
@@ -480,27 +621,29 @@ const playerHTML = `<!DOCTYPE html>
     .result-points { font-size: 2rem; color: #bc002d; margin-top: 10px; }
     .waiting { text-align: center; font-size: 1.5rem; color: #888; padding: 50px 0; }
     .hidden { display: none !important; }
+    .paused-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: #bc002d; font-weight: bold; z-index: 100; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🎌 Kanji Zoo 🎌</h1>
-    
+
     <div class="join-form" id="joinForm">
       <input type="text" id="nameInput" placeholder="Your name" maxlength="15">
       <button class="btn btn-primary" onclick="joinGame()">Join Game</button>
     </div>
-    
+
     <div class="game-view hidden" id="gameView">
       <div class="status">
-        <span>Score: </span><span class="score" id="score">0</span>
+        <span>Score: <span class="score" id="score">0</span></span>
+        <span class="player-timer" id="playerTimer"></span>
       </div>
-      
+
       <div id="questionArea" class="hidden">
         <div class="prompt" id="prompt"></div>
         <div class="options" id="options"></div>
       </div>
-      
+
       <div id="resultArea" class="hidden">
         <div class="result">
           <div class="result-icon" id="resultIcon"></div>
@@ -508,12 +651,14 @@ const playerHTML = `<!DOCTYPE html>
           <div class="result-points" id="resultPoints"></div>
         </div>
       </div>
-      
+
       <div id="waitingArea">
         <p class="waiting">Waiting for the game to start...</p>
       </div>
     </div>
   </div>
+
+  <div class="paused-overlay hidden" id="pausedOverlay">PAUSED</div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
@@ -521,6 +666,8 @@ const playerHTML = `<!DOCTYPE html>
     let myScore = 0;
     let answered = false;
     let currentCorrectId = null;
+    let countdownInterval = null;
+    let isPaused = false;
 
     // Sound effects using Web Audio API
     const SoundFX = {
@@ -545,14 +692,8 @@ const playerHTML = `<!DOCTYPE html>
         this._tone(440, 0.15, 'sine', 0.3);
         setTimeout(() => this._tone(660, 0.25, 'sine', 0.3), 120);
       },
-      wrong() {
-        this.init();
-        this._tone(200, 0.3, 'square', 0.15);
-      },
-      question() {
-        this.init();
-        this._tone(880, 0.15, 'sine', 0.2);
-      },
+      wrong() { this.init(); this._tone(200, 0.3, 'square', 0.15); },
+      question() { this.init(); this._tone(880, 0.15, 'sine', 0.2); },
       gameOver() {
         this.init();
         [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this._tone(f, 0.3, 'sine', 0.25), i * 150));
@@ -560,23 +701,44 @@ const playerHTML = `<!DOCTYPE html>
     };
     document.addEventListener('click', () => SoundFX.init(), { once: true });
 
+    function stopCountdown() {
+      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+      const el = document.getElementById('playerTimer');
+      if (el) el.textContent = '';
+    }
+
+    function startCountdown(timeLimit) {
+      stopCountdown();
+      const startTime = Date.now();
+      const el = document.getElementById('playerTimer');
+      countdownInterval = setInterval(() => {
+        if (isPaused) return;
+        if (!el) { stopCountdown(); return; }
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, Math.ceil((timeLimit - elapsed) / 1000));
+        el.textContent = remaining;
+        el.className = remaining <= 3 ? 'player-timer urgent' : 'player-timer';
+        if (remaining <= 0) { clearInterval(countdownInterval); countdownInterval = null; }
+      }, 100);
+    }
+
     function joinGame() {
       const name = document.getElementById('nameInput').value.trim();
       if (!name) return alert('Please enter your name');
       socket.emit('join', name);
     }
-    
+
     socket.on('joined', () => {
       document.getElementById('joinForm').classList.add('hidden');
       document.getElementById('gameView').classList.remove('hidden');
     });
-    
+
     socket.on('gameStarted', () => {
       myScore = 0;
       document.getElementById('score').textContent = '0';
     });
-    
-    function showQuestion(q) {
+
+    function showQuestion(q, timeLimit) {
       SoundFX.question();
       answered = false;
       currentCorrectId = q.correctId;
@@ -584,26 +746,39 @@ const playerHTML = `<!DOCTYPE html>
       document.getElementById('resultArea').classList.add('hidden');
       document.getElementById('questionArea').classList.remove('hidden');
       document.getElementById('prompt').textContent = q.prompt;
-      
-      document.getElementById('options').innerHTML = q.options.map(o => 
+
+      document.getElementById('options').innerHTML = q.options.map(o =>
         '<button class="option" data-id="' + o.id + '" onclick="answer(this)">' + o.display + '</button>'
       ).join('');
+
+      startCountdown(timeLimit);
     }
-    
-    socket.on('newQuestion', (data) => showQuestion(data.question));
-    socket.on('hiraganaQuestion', (data) => showQuestion(data.question));
-    
+
+    socket.on('newQuestion', (data) => showQuestion(data.question, data.timeLimit));
+    socket.on('hiraganaQuestion', (data) => showQuestion(data.question, data.timeLimit));
+
+    // Time up — disable buttons if not answered
+    socket.on('timeUp', () => {
+      stopCountdown();
+      const el = document.getElementById('playerTimer');
+      if (el) { el.textContent = '0'; el.className = 'player-timer urgent'; }
+      if (!answered) {
+        answered = true;
+        document.querySelectorAll('.option').forEach(b => b.classList.add('disabled'));
+        const correctBtn = document.querySelector('.option[data-id="' + currentCorrectId + '"]');
+        if (correctBtn) correctBtn.classList.add('correct');
+      }
+    });
+
     function answer(btn) {
       if (answered) return;
       answered = true;
-      
+
       const id = btn.dataset.id;
       socket.emit('answer', id);
-      
-      // Disable all buttons
+
       document.querySelectorAll('.option').forEach(b => b.classList.add('disabled'));
-      
-      // Show correct/wrong
+
       if (id === currentCorrectId) {
         btn.classList.add('correct');
       } else {
@@ -611,52 +786,52 @@ const playerHTML = `<!DOCTYPE html>
         document.querySelector('.option[data-id="' + currentCorrectId + '"]').classList.add('correct');
       }
     }
-    
+
     socket.on('answerResult', (result) => {
       if (result.correct) SoundFX.correct(); else SoundFX.wrong();
       myScore += result.points;
       document.getElementById('score').textContent = myScore;
-
-      setTimeout(() => {
-        document.getElementById('questionArea').classList.add('hidden');
-        document.getElementById('resultArea').classList.remove('hidden');
-
-        if (result.correct) {
-          document.getElementById('resultIcon').textContent = '✅';
-          document.getElementById('resultText').textContent = 'Correct!';
-          document.getElementById('resultPoints').textContent = '+' + result.points + ' points';
-        } else {
-          document.getElementById('resultIcon').textContent = '❌';
-          document.getElementById('resultText').textContent = 'Wrong!';
-          document.getElementById('resultPoints').textContent = '';
-        }
-      }, 1500);
     });
-    
+
     socket.on('showAnswer', () => {
-      // Just keep showing result or question
+      // Answer is shown on host; player stays on question/result view until next question
     });
-    
+
     socket.on('gameOver', (lb) => {
       SoundFX.gameOver();
+      stopCountdown();
       document.getElementById('questionArea').classList.add('hidden');
       document.getElementById('resultArea').classList.add('hidden');
       document.getElementById('waitingArea').classList.remove('hidden');
 
       const myRank = lb.findIndex(p => p.score === myScore) + 1;
-      document.getElementById('waitingArea').innerHTML = 
+      document.getElementById('waitingArea').innerHTML =
         '<p class="waiting">🎉 Game Over! 🎉</p>' +
         '<p class="waiting">Your score: ' + myScore + '</p>' +
         '<p class="waiting">Rank: #' + myRank + '</p>';
     });
-    
+
+    // Pause / Resume
+    socket.on('gamePaused', () => {
+      isPaused = true;
+      document.getElementById('pausedOverlay').classList.remove('hidden');
+    });
+
+    socket.on('gameResumed', () => {
+      isPaused = false;
+      document.getElementById('pausedOverlay').classList.add('hidden');
+    });
+
     socket.on('gameReset', () => {
       myScore = 0;
+      isPaused = false;
+      stopCountdown();
       document.getElementById('score').textContent = '0';
       document.getElementById('questionArea').classList.add('hidden');
       document.getElementById('resultArea').classList.add('hidden');
       document.getElementById('waitingArea').classList.remove('hidden');
       document.getElementById('waitingArea').innerHTML = '<p class="waiting">Waiting for the game to start...</p>';
+      document.getElementById('pausedOverlay').classList.add('hidden');
     });
   </script>
 </body></html>`;
