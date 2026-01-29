@@ -368,7 +368,7 @@ const hostHTML = `<!DOCTYPE html>
 <body>
   <div class="container">
     <h1>漢字の動物園</h1>
-    <p class="subtitle">Kanji Zoo — Animal Kanji Memory Game</p>
+    <p class="subtitle">Kanji Zoo — Animal Kanji Learning Game</p>
 
     <div class="join-info">
       <p>Players join at:</p>
