@@ -304,6 +304,40 @@ const hostHTML = `<!DOCTYPE html>
   <script>
     const socket = io();
     let currentPhase = 'lobby';
+    let lastPlayerCount = 0;
+
+    // Sound effects using Web Audio API
+    const SoundFX = {
+      ctx: null,
+      init() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+      },
+      _tone(freq, duration, type, vol) {
+        if (!this.ctx) return;
+        const o = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        o.type = type || 'sine';
+        o.frequency.value = freq;
+        g.gain.value = vol || 0.3;
+        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+        o.connect(g); g.connect(this.ctx.destination);
+        o.start(); o.stop(this.ctx.currentTime + duration);
+      },
+      playerJoin() {
+        this.init();
+        this._tone(500, 0.1, 'sine', 0.15);
+      },
+      question() {
+        this.init();
+        this._tone(880, 0.15, 'sine', 0.2);
+      },
+      gameOver() {
+        this.init();
+        [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this._tone(f, 0.3, 'sine', 0.25), i * 150));
+      }
+    };
+    document.addEventListener('click', () => SoundFX.init(), { once: true });
 
     // Show join URL and QR code
     const joinUrl = window.location.origin;
@@ -312,6 +346,8 @@ const hostHTML = `<!DOCTYPE html>
     
     // Update player list
     socket.on('playerList', (players) => {
+      if (players.length > lastPlayerCount) SoundFX.playerJoin();
+      lastPlayerCount = players.length;
       document.getElementById('playerCount').textContent = players.length;
       document.getElementById('playerList').innerHTML = players.map(p => '<li>' + p + '</li>').join('');
     });
@@ -326,6 +362,7 @@ const hostHTML = `<!DOCTYPE html>
     
     // Question display
     socket.on('newQuestion', (data) => {
+      SoundFX.question();
       currentPhase = 'question';
       const q = data.question;
       document.getElementById('mainDisplay').innerHTML = 
@@ -339,6 +376,7 @@ const hostHTML = `<!DOCTYPE html>
     
     // Hiragana question
     socket.on('hiraganaQuestion', (data) => {
+      SoundFX.question();
       currentPhase = 'hiragana';
       const q = data.question;
       document.getElementById('mainDisplay').innerHTML = 
@@ -362,6 +400,7 @@ const hostHTML = `<!DOCTYPE html>
     
     // Game over
     socket.on('gameOver', (lb) => {
+      SoundFX.gameOver();
       currentPhase = 'results';
       const winner = lb[0];
       document.getElementById('mainDisplay').innerHTML = 
@@ -482,7 +521,45 @@ const playerHTML = `<!DOCTYPE html>
     let myScore = 0;
     let answered = false;
     let currentCorrectId = null;
-    
+
+    // Sound effects using Web Audio API
+    const SoundFX = {
+      ctx: null,
+      init() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+      },
+      _tone(freq, duration, type, vol) {
+        if (!this.ctx) return;
+        const o = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        o.type = type || 'sine';
+        o.frequency.value = freq;
+        g.gain.value = vol || 0.3;
+        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+        o.connect(g); g.connect(this.ctx.destination);
+        o.start(); o.stop(this.ctx.currentTime + duration);
+      },
+      correct() {
+        this.init();
+        this._tone(440, 0.15, 'sine', 0.3);
+        setTimeout(() => this._tone(660, 0.25, 'sine', 0.3), 120);
+      },
+      wrong() {
+        this.init();
+        this._tone(200, 0.3, 'square', 0.15);
+      },
+      question() {
+        this.init();
+        this._tone(880, 0.15, 'sine', 0.2);
+      },
+      gameOver() {
+        this.init();
+        [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this._tone(f, 0.3, 'sine', 0.25), i * 150));
+      }
+    };
+    document.addEventListener('click', () => SoundFX.init(), { once: true });
+
     function joinGame() {
       const name = document.getElementById('nameInput').value.trim();
       if (!name) return alert('Please enter your name');
@@ -500,6 +577,7 @@ const playerHTML = `<!DOCTYPE html>
     });
     
     function showQuestion(q) {
+      SoundFX.question();
       answered = false;
       currentCorrectId = q.correctId;
       document.getElementById('waitingArea').classList.add('hidden');
@@ -535,13 +613,14 @@ const playerHTML = `<!DOCTYPE html>
     }
     
     socket.on('answerResult', (result) => {
+      if (result.correct) SoundFX.correct(); else SoundFX.wrong();
       myScore += result.points;
       document.getElementById('score').textContent = myScore;
-      
+
       setTimeout(() => {
         document.getElementById('questionArea').classList.add('hidden');
         document.getElementById('resultArea').classList.remove('hidden');
-        
+
         if (result.correct) {
           document.getElementById('resultIcon').textContent = '✅';
           document.getElementById('resultText').textContent = 'Correct!';
@@ -559,10 +638,11 @@ const playerHTML = `<!DOCTYPE html>
     });
     
     socket.on('gameOver', (lb) => {
+      SoundFX.gameOver();
       document.getElementById('questionArea').classList.add('hidden');
       document.getElementById('resultArea').classList.add('hidden');
       document.getElementById('waitingArea').classList.remove('hidden');
-      
+
       const myRank = lb.findIndex(p => p.score === myScore) + 1;
       document.getElementById('waitingArea').innerHTML = 
         '<p class="waiting">🎉 Game Over! 🎉</p>' +
