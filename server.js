@@ -333,9 +333,18 @@ const hostHTML = `<!DOCTYPE html>
     .container { max-width: 1200px; margin: 0 auto; }
     h1 { text-align: center; font-size: 3rem; margin-bottom: 10px; color: #c03030; font-weight: 700; }
     .subtitle { text-align: center; color: #6b6b6b; margin-bottom: 30px; letter-spacing: 0.05em; }
-    .join-info { background: #faf6ed; border: 1px solid #c4b8a8; padding: 20px; border-radius: 6px; text-align: center; margin-bottom: 30px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .hidden { display: none !important; }
+    /* Lobby screen */
+    .lobby-screen { text-align: center; }
+    .join-info { background: #faf6ed; border: 1px solid #c4b8a8; padding: 40px; border-radius: 6px; text-align: center; margin-bottom: 30px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
     .join-url { font-size: 1.8rem; color: #c03030; font-weight: 700; }
-    .main-display { background: #faf6ed; border: 1px solid #c4b8a8; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-radius: 6px; padding: 40px; text-align: center; min-height: 300px; margin-bottom: 30px; position: relative; }
+    .lobby-players { background: #faf6ed; border: 1px solid #c4b8a8; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-radius: 6px; padding: 20px; margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto; }
+    .lobby-players h3 { margin-bottom: 15px; color: #c03030; text-align: center; }
+    .lobby-start { text-align: center; margin-bottom: 30px; }
+    /* Game screen — 3-column layout */
+    .game-screen { display: grid; grid-template-columns: 240px 1fr 240px; grid-template-rows: auto 1fr; gap: 20px; }
+    .game-controls { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+    .game-main { background: #faf6ed; border: 1px solid #c4b8a8; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-radius: 6px; padding: 40px; text-align: center; min-height: 300px; position: relative; }
     .question-num { color: #6b6b6b; font-size: 1.2rem; margin-bottom: 20px; }
     .prompt { font-size: 8rem; margin: 20px 0; }
     .options-display { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 600px; margin: 0 auto; }
@@ -343,14 +352,12 @@ const hostHTML = `<!DOCTYPE html>
     .answer-reveal { background: #e8f0e4; color: #1a1a1a; padding: 30px; border-radius: 6px; margin-top: 20px; border: 1px solid #c4b8a8; }
     .answer-reveal .emoji { font-size: 5rem; }
     .answer-reveal .text { font-size: 2rem; margin-top: 10px; }
-    .controls { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 30px; }
     .btn { padding: 15px 30px; font-size: 1.2rem; border: none; border-radius: 4px; cursor: pointer; font-family: 'Noto Serif JP', serif; transition: transform 0.2s, box-shadow 0.2s; }
     .btn:hover { transform: translateY(-1px) rotate(-0.5deg); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
     .btn-primary { background: #c03030; color: #faf6ed; letter-spacing: 0.05em; }
     .btn-secondary { background: #faf6ed; color: #c03030; border: 1px solid #c03030; }
     .btn-success { background: #2d7a3a; color: #faf6ed; }
     .btn-warning { background: #c49000; color: #faf6ed; }
-    .sidebar { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     .panel { background: #faf6ed; border: 1px solid #c4b8a8; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-radius: 6px; padding: 20px; }
     .panel h3 { margin-bottom: 15px; color: #c03030; }
     .player-list { list-style: none; }
@@ -377,28 +384,35 @@ const hostHTML = `<!DOCTYPE html>
     <h1>漢字の動物園</h1>
     <p class="subtitle">Kanji Zoo — Animal Kanji Learning Game</p>
 
-    <div class="join-info">
-      <p>Players join at:</p>
-      <p class="join-url" id="joinUrl"></p>
-      <canvas id="qrcode" style="margin-top:15px;"></canvas>
-    </div>
-
-    <div class="main-display" id="mainDisplay">
-      <p style="font-size: 2rem; color: #6b6b6b;">Waiting for players...</p>
-    </div>
-
-    <div class="controls" id="controls">
-      <button class="btn btn-primary" onclick="startGame()">Start Game</button>
-    </div>
-
-    <div class="sidebar">
-      <div class="panel">
-        <h3>Players (<span id="playerCount">0</span>)</h3>
-        <ul class="player-list" id="playerList"></ul>
+    <!-- LOBBY SCREEN -->
+    <div class="lobby-screen" id="lobbyScreen">
+      <div class="join-info">
+        <p>Players join at:</p>
+        <p class="join-url" id="joinUrl"></p>
+        <canvas id="qrcode" style="margin-top:15px;"></canvas>
       </div>
-      <div class="panel">
+      <div class="lobby-players">
+        <h3>Players (<span id="lobbyPlayerCount">0</span>)</h3>
+        <ul class="player-list" id="lobbyPlayerList"></ul>
+      </div>
+      <div class="lobby-start">
+        <button class="btn btn-primary" onclick="startGame()">Start Game</button>
+      </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div class="game-screen hidden" id="gameScreen">
+      <div class="game-controls" id="controls"></div>
+      <div class="panel" id="leaderboardPanel">
         <h3>Leaderboard</h3>
         <div id="leaderboard"></div>
+      </div>
+      <div class="game-main" id="mainDisplay">
+        <p style="font-size: 2rem; color: #6b6b6b;">Starting...</p>
+      </div>
+      <div class="panel" id="playersPanel">
+        <h3>Players (<span id="playerCount">0</span>)</h3>
+        <ul class="player-list" id="playerList"></ul>
       </div>
     </div>
   </div>
@@ -490,12 +504,24 @@ const hostHTML = `<!DOCTYPE html>
       }, 100);
     }
 
-    // Update player list
+    function showLobby() {
+      document.getElementById('lobbyScreen').classList.remove('hidden');
+      document.getElementById('gameScreen').classList.add('hidden');
+    }
+    function showGame() {
+      document.getElementById('lobbyScreen').classList.add('hidden');
+      document.getElementById('gameScreen').classList.remove('hidden');
+    }
+
+    // Update player list (both lobby and game panels)
     socket.on('playerList', (players) => {
       if (players.length > lastPlayerCount) SoundFX.playerJoin();
       lastPlayerCount = players.length;
+      const listHtml = players.map(p => '<li>' + p + '</li>').join('');
+      document.getElementById('lobbyPlayerCount').textContent = players.length;
+      document.getElementById('lobbyPlayerList').innerHTML = listHtml;
       document.getElementById('playerCount').textContent = players.length;
-      document.getElementById('playerList').innerHTML = players.map(p => '<li>' + p + '</li>').join('');
+      document.getElementById('playerList').innerHTML = listHtml;
     });
 
     // Update leaderboard
@@ -509,6 +535,7 @@ const hostHTML = `<!DOCTYPE html>
     // Question display
     socket.on('newQuestion', (data) => {
       SoundFX.question();
+      showGame();
       currentPhase = 'playing';
       isPaused = false;
       const q = data.question;
@@ -526,6 +553,7 @@ const hostHTML = `<!DOCTYPE html>
     // Hiragana question
     socket.on('hiraganaQuestion', (data) => {
       SoundFX.question();
+      showGame();
       currentPhase = 'playing';
       isPaused = false;
       const q = data.question;
@@ -601,15 +629,17 @@ const hostHTML = `<!DOCTYPE html>
       stopCountdown();
       currentPhase = 'lobby';
       isPaused = false;
-      document.getElementById('mainDisplay').innerHTML = '<p style="font-size: 2rem; color: #6b6b6b;">Waiting for players...</p>';
+      document.getElementById('mainDisplay').innerHTML = '<p style="font-size: 2rem; color: #6b6b6b;">Starting...</p>';
+      showLobby();
       updateControls();
     });
 
     // Control buttons
     function updateControls() {
       let html = '';
-      if (currentPhase === 'lobby' || currentPhase === 'results') {
-        html = '<button class="btn btn-primary" onclick="startGame()">Start Game</button>';
+      if (currentPhase === 'results') {
+        html = '<button class="btn btn-primary" onclick="startGame()">Play Again</button>' +
+               '<button class="btn btn-secondary" onclick="stopGame()">Back to Lobby</button>';
       } else if (currentPhase === 'playing') {
         if (isPaused) {
           html = '<button class="btn btn-success" onclick="resumeGame()">Resume</button>';
