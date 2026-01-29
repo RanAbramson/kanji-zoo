@@ -368,7 +368,7 @@ const hostHTML = `<!DOCTYPE html>
     @keyframes pulse-scale { from { opacity: 1; transform: scale(1); } to { opacity: 0.7; transform: scale(1.1); } }
     .paused-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(247,243,233,0.92); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #1a1a1a; font-weight: 700; border-radius: 6px; letter-spacing: 0.1em; }
     .confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 200; }
-    .confetti-piece { position: absolute; top: -60px; font-size: 2.5rem; animation: confetti-fall linear forwards; }
+    .confetti-piece { position: absolute; top: -60px; font-size: 2.5rem; animation-name: confetti-fall; animation-timing-function: linear; animation-fill-mode: forwards; }
     @keyframes confetti-fall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
   </style>
 </head>
@@ -669,7 +669,7 @@ const playerHTML = `<!DOCTYPE html>
     .hidden { display: none !important; }
     .paused-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(247,243,233,0.92); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: #1a1a1a; font-weight: 700; z-index: 100; letter-spacing: 0.1em; }
     .confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 200; }
-    .confetti-piece { position: absolute; top: -60px; font-size: 2rem; animation: confetti-fall linear forwards; }
+    .confetti-piece { position: absolute; top: -60px; font-size: 2rem; animation-name: confetti-fall; animation-timing-function: linear; animation-fill-mode: forwards; }
     @keyframes confetti-fall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
   </style>
 </head>
